@@ -8,6 +8,8 @@ def get_thread_id():
     """Generate a unique thread ID."""
     return str(uuid.uuid4())
 
+# ********************** Streamlit App Setup **********************
+
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = str(uuid.uuid4())
 
@@ -35,10 +37,23 @@ if st.session_state.thread_id not in st.session_state.threads:
     st.session_state.threads.append(st.session_state.thread_id)
 
 st.sidebar.title("Langgraph Sidebar")
-st.sidebar.button("New Chat")
+# New Chat
+if st.sidebar.button("New Chat"):
+    st.session_state.thread_id = str(uuid.uuid4())
+    st.session_state.messages = []
+    if st.session_state.thread_id not in st.session_state.threads:
+        st.session_state.threads.append(st.session_state.thread_id)
+
+# Previous Conversations
 st.sidebar.write("Previous Conversations")
 for tid in st.session_state.threads:
-    st.sidebar.write(tid)
+    if st.sidebar.button(tid, key=tid):
+        st.session_state.thread_id = tid
+        st.session_state.messages = st.session_state.get(f"messages_{tid}", [])
+
+# Save messages per thread
+st.session_state[f"messages_{st.session_state.thread_id}"] = st.session_state.messages
+
 
 # Add and display new messages
 if prompt:
