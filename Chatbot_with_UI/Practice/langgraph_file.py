@@ -7,7 +7,7 @@ from langgraph.graph.message import add_messages
 from dotenv import load_dotenv
 import os
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -27,10 +27,7 @@ def chat_with_llm(state: Agent):
     return {"messages": [response]}
 
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
-
-conn = sqlite3.connect(database='chatbot.db', check_same_thread=False)
+from langgraph.checkpoint.memory import InMemorySaver
 
 workflow = StateGraph(Agent)
 
@@ -39,13 +36,6 @@ workflow.add_node("chat_with_llm", chat_with_llm)
 workflow.add_edge(START, "chat_with_llm")
 workflow.add_edge("chat_with_llm", END)
 
-checkpointer = SqliteSaver(conn=conn)
+checkpointer = InMemorySaver()
 
 graph = workflow.compile(checkpointer=checkpointer)
-
-# config = {'configurable': {"thread_id": "thread_1"}}
-
-# result = graph.invoke({"messages": [HumanMessage(content="What's my name?")]},
-#              config=config)
-
-# print(result)
