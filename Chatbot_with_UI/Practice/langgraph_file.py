@@ -20,6 +20,27 @@ llm = ChatOpenAI(
     model_name="openai/gpt-oss-120b:cerebras",
 )
 
+def serialize_message(msg):
+    """Convert a LangChain message into a dict with role + content"""
+    if isinstance(msg, HumanMessage):
+        role = "human"
+    elif isinstance(msg, AIMessage):
+        role = "ai"
+    else:
+        role = "system"
+    return {"role": role, "content": msg.content}
+
+
+def deserialize_message(data):
+    """Convert stored dict back into the correct LangChain message"""
+    if data["role"] == "human":
+        return HumanMessage(content=data["content"])
+    elif data["role"] == "ai":
+        return AIMessage(content=data["content"])
+    else:
+        return BaseMessage(content=data["content"])
+
+
 # ---------- LangGraph Setup ----------
 class ChatState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
@@ -27,7 +48,8 @@ class ChatState(TypedDict):
 def chat_node(state: ChatState):
     input_messages = state["messages"]
     response = llm.invoke(input_messages)
-    return {"messages": [AIMessage(content=response.content)]}
+    return {"messages": [serialize_message(AIMessage(content=response.content))]}
+
 
 # SQLite connection and checkpointer
 conn = sqlite3.connect("practice.db", check_same_thread=False, isolation_level=None)
@@ -52,4 +74,13 @@ def retrieve_all_threads():
 def load_conversation(thread_id):
     """Return list of messages (HumanMessage/AIMessage) for a thread"""
     state = graph.get_state(config={"configurable": {"thread_id": thread_id}})
-    return state.values.get("messages", [])
+    raw_messages = state.values.get("messages", [])
+
+    messages = []
+    for m in raw_messages:
+        if isinstance(m, dict) and "role" in m:
+            messages.append(deserialize_message(m))
+        else:
+            # fallback if still BaseMessage (old data)
+            messages.append(m)
+    return messages

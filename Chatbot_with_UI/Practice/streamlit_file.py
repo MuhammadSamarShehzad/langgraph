@@ -38,13 +38,18 @@ for tid in st.session_state["chat_threads"][::-1]:
         messages = load_conversation(tid)
         print(f"\n\n\n\nmessages are:\n{messages}")
 
-        st.session_state["message_history"] = [
-            {
-                "role": "human" if isinstance(m, HumanMessage) else "ai",
+        st.session_state["message_history"] = []
+        for m in messages:
+            if isinstance(m, HumanMessage):
+                role = "human"
+            elif isinstance(m, AIMessage):
+                role = "ai"
+            else:
+                role = "system"  # optional, in case you later add SystemMessage
+            st.session_state["message_history"].append({
+                "role": role,
                 "content": m.content
-            }
-            for m in messages
-        ]
+    })
         st.rerun()
 
 # ---------- Main Chat Display ----------
@@ -61,7 +66,8 @@ else:
 user_input = st.chat_input("Say something")
 if user_input:
     # append user message
-    st.session_state["message_history"].append({"role": "human", "content": user_input})
+    from langgraph_file import serialize_message
+    st.session_state["message_history"].append(serialize_message(HumanMessage(content=user_input)))
     with st.chat_message("human"):
         st.text(user_input)
 
