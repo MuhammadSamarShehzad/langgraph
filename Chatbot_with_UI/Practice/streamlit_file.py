@@ -36,7 +36,6 @@ for tid in st.session_state["chat_threads"][::-1]:
     if st.sidebar.button(str(tid), key=f"btn_{tid}"):
         st.session_state["thread_id"] = tid
         messages = load_conversation(tid)
-        print(f"\n\n\n\nmessages are:\n{messages}")
 
         st.session_state["message_history"] = []
         for m in messages:
@@ -62,6 +61,8 @@ else:
         with st.chat_message(msg["role"]):
             st.text(msg["content"])
 
+
+CONFIG = {"configurable": {"thread_id": st.session_state["thread_id"]}}
 # ---------- Chat Input ----------
 user_input = st.chat_input("Say something")
 if user_input:
@@ -72,7 +73,6 @@ if user_input:
         st.text(user_input)
 
     # call LangGraph
-    CONFIG = {"configurable": {"thread_id": st.session_state["thread_id"]}}
     response = graph.invoke({"messages": HumanMessage(content=user_input)}, config=CONFIG)
     answer = response["messages"][-1].content
 
